@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE HERO'S JOURNEY // 2157</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap');
+
+:root {
+  --bg:      #04010a;
+  --surface: rgba(6,2,18,0.95);
+  --panel:   rgba(10,4,28,0.97);
+  --pink:    #ff2d78;
+  --cyan:    #00f5ff;
+  --yellow:  #ffe600;
+  --green:   #00ff9d;
+  --purple:  #b24bff;
+  --red:     #ff3131;
+  --text:    #ccd6f6;
+  --dim:     #3a4060;
+  --bright:  #ffffff;
+  --bp:      rgba(255,45,120,0.35);
+  --bc:      rgba(0,245,255,0.3);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);font-family:'Share Tech Mono',monospace;color:var(--text);overflow:hidden;}
+
+/* ── Background canvas ── */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 100% 60% at 50% 0%,rgba(255,45,120,0.07) 0%,transparent 65%),
+             radial-gradient(ellipse 80% 50% at 100% 100%,rgba(0,245,255,0.06) 0%,transparent 60%),
+             radial-gradient(ellipse 100% 100% at 50% 50%,transparent 40%,rgba(4,1,10,0.8) 100%);}
+#scanlines{position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.08) 3px,rgba(0,0,0,0.08) 4px);}
+
+/* ── App shell ── */
+#app{position:relative;z-index:10;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+/* ── Top bar ── */
+#topbar{
+  background:var(--panel);border-bottom:1px solid var(--bp);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;position:relative;
+}
+#topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--pink) 30%,var(--cyan) 70%,transparent);opacity:0.5;}
+.bar-title{font-family:'Orbitron',monospace;font-size:12px;font-weight:900;color:var(--pink);
+  letter-spacing:0.2em;text-shadow:0 0 12px rgba(255,45,120,0.8);
+  animation:titleGlitch 9s steps(1) infinite;}
+@keyframes titleGlitch{0%,94%,100%{text-shadow:0 0 12px rgba(255,45,120,0.8);transform:none}
+  95%{text-shadow:3px 0 var(--cyan),-3px 0 var(--pink);transform:skewX(1deg)}
+  96%{text-shadow:-2px 0 var(--yellow),2px 0 var(--cyan);transform:skewX(-1deg)}}
+.bar-sub{font-size:9px;color:var(--dim);letter-spacing:0.18em;margin-top:2px;}
+.leds{display:flex;gap:6px;align-items:center;}
+.led{width:7px;height:7px;border-radius:50%;animation:ledP 2.4s ease-in-out infinite;}
+.led.pk{background:var(--pink);box-shadow:0 0 6px var(--pink);}
+.led.cy{background:var(--cyan);box-shadow:0 0 6px var(--cyan);animation-delay:.8s;}
+.led.ye{background:var(--yellow);box-shadow:0 0 6px var(--yellow);animation-delay:1.6s;}
+@keyframes ledP{0%,100%{opacity:1}50%{opacity:.2}}
+#save-indicator{font-size:9px;color:var(--dim);letter-spacing:0.12em;}
+
+/* ── Main content ── */
+#main{display:flex;flex:1;overflow:hidden;}
+
+/* ── Left panel (hero stats) ── */
+#left-panel{
+  width:280px;min-width:280px;background:var(--panel);
+  border-right:1px solid rgba(255,45,120,0.15);
+  overflow-y:auto;flex-shrink:0;
+}
+#left-panel::-webkit-scrollbar{width:3px;}
+#left-panel::-webkit-scrollbar-thumb{background:var(--bp);border-radius:2px;}
+
+/* ── Right panel (game log + input) ── */
+#right-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── Game log ── */
+#log{
+  flex:1;overflow-y:auto;padding:16px 20px 8px;
+  font-size:13px;line-height:1.85;
+}
+#log::-webkit-scrollbar{width:3px;}
+#log::-webkit-scrollbar-thumb{background:var(--bp);border-radius:2px;}
+.msg{display:block;animation:msgIn .18s ease forwards;}
+@keyframes msgIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.msg.g{color:var(--green);} .msg.r{color:var(--red);} .msg.y{color:var(--yellow);}
+.msg.c{color:var(--cyan);} .msg.pk{color:var(--pink);} .msg.p{color:var(--purple);}
+.msg.d{color:var(--dim);} .msg.w{color:var(--bright);}
+.msg.big{font-family:'VT323',monospace;font-size:22px;color:var(--pink);text-shadow:0 0 10px rgba(255,45,120,.7);}
+.msg.hdr{font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:.1em;text-shadow:0 0 8px rgba(0,245,255,.5);}
+.msg.div{color:rgba(255,45,120,.2);}
+.msg.sep{color:rgba(0,245,255,.15);}
+
+/* ── Input area ── */
+#input-zone{
+  background:var(--panel);border-top:1px solid rgba(255,45,120,.15);
+  padding:10px 20px;flex-shrink:0;
+}
+#input-zone::before{content:'';display:block;height:1px;
+  background:linear-gradient(90deg,transparent,var(--pink),transparent);opacity:.3;margin-bottom:10px;}
+#prompt-label{font-family:'Orbitron',monospace;font-size:10px;color:var(--pink);
+  text-shadow:0 0 8px rgba(255,45,120,.8);letter-spacing:.1em;margin-bottom:6px;display:block;}
+#btn-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+#text-row{display:flex;gap:8px;align-items:center;}
+#text-input{flex:1;background:transparent;border:none;border-bottom:1px solid rgba(255,45,120,.3);
+  color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:13px;
+  padding:4px;outline:none;caret-color:var(--pink);text-shadow:0 0 6px rgba(0,245,255,.4);}
+#text-input:focus{border-bottom-color:var(--pink);}
+#text-input::placeholder{color:var(--dim);text-shadow:none;}
+#submit-btn{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;
+  padding:7px 14px;background:rgba(255,45,120,.12);color:var(--pink);
+  border:1px solid rgba(255,45,120,.35);cursor:pointer;border-radius:1px;
+  clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));}
+#submit-btn:hover{background:rgba(255,45,120,.22);}
+
+/* ── Buttons ── */
+button.gb{
+  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;
+  padding:8px 16px;border-radius:1px;cursor:pointer;transition:all .15s;
+  position:relative;overflow:hidden;
+  clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));
+}
+button.gb::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07) 50%,transparent);
+  transform:translateX(-100%);transition:transform .4s;}
+button.gb:hover::before{transform:translateX(100%);}
+button.gb:active{transform:scale(.96);}
+button.pk{background:rgba(255,45,120,.12);color:var(--pink);border:1px solid rgba(255,45,120,.35);text-shadow:0 0 8px rgba(255,45,120,.6);}
+button.pk:hover{background:rgba(255,45,120,.22);box-shadow:0 0 18px rgba(255,45,120,.18);}
+button.cy{background:rgba(0,245,255,.07);color:var(--cyan);border:1px solid rgba(0,245,255,.3);text-shadow:0 0 6px rgba(0,245,255,.5);}
+button.cy:hover{background:rgba(0,245,255,.15);box-shadow:0 0 16px rgba(0,245,255,.12);}
+button.ye{background:rgba(255,230,0,.08);color:var(--yellow);border:1px solid rgba(255,230,0,.3);text-shadow:0 0 6px rgba(255,230,0,.5);}
+button.ye:hover{background:rgba(255,230,0,.16);}
+button.gn{background:rgba(0,255,157,.08);color:var(--green);border:1px solid rgba(0,255,157,.35);text-shadow:0 0 6px rgba(0,255,157,.5);}
+button.gn:hover{background:rgba(0,255,157,.16);box-shadow:0 0 16px rgba(0,255,157,.12);}
+button.rd{background:rgba(255,49,49,.1);color:var(--red);border:1px solid rgba(255,49,49,.35);}
+button.rd:hover{background:rgba(255,49,49,.2);}
+button.pu{background:rgba(178,75,255,.1);color:var(--purple);border:1px solid rgba(178,75,255,.35);text-shadow:0 0 6px rgba(178,75,255,.5);}
+button.pu:hover{background:rgba(178,75,255,.2);}
+button.gb:disabled{opacity:.25;cursor:default;}
+
+/* ── Stat panel sections ── */
+.sp-section{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);}
+.sp-title{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;
+  color:var(--pink);letter-spacing:.18em;text-transform:uppercase;
+  text-shadow:0 0 8px rgba(255,45,120,.5);margin-bottom:10px;}
+.sp-row{display:flex;justify-content:space-between;align-items:center;
+  font-size:11px;margin-bottom:5px;}
+.sp-lbl{color:var(--dim);font-size:9px;letter-spacing:.12em;text-transform:uppercase;}
+.sp-val{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--cyan);
+  text-shadow:0 0 8px rgba(0,245,255,.4);}
+.sp-val.pk{color:var(--pink);text-shadow:0 0 8px rgba(255,45,120,.5);}
+.sp-val.gn{color:var(--green);}
+.sp-val.ye{color:var(--yellow);}
+.sp-val.pu{color:var(--purple);}
+
+/* HP / mana bars */
+.bar-wrap{margin-bottom:6px;}
+.bar-lbl{display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;}
+.bar-lbl span:first-child{color:var(--dim);letter-spacing:.1em;}
+.bar-lbl span:last-child{font-family:'Orbitron',monospace;font-size:10px;}
+.bar-track{height:6px;background:rgba(255,255,255,.05);border-radius:1px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:1px;transition:width .4s ease;}
+.bar-fill.hp{background:linear-gradient(90deg,var(--green),rgba(0,255,157,.6));}
+.bar-fill.hp.low{background:linear-gradient(90deg,var(--red),rgba(255,49,49,.6));}
+.bar-fill.mana{background:linear-gradient(90deg,var(--purple),rgba(178,75,255,.6));}
+.bar-fill.stam{background:linear-gradient(90deg,var(--cyan),rgba(0,245,255,.6));}
+.bar-fill.xp{background:linear-gradient(90deg,var(--yellow),rgba(255,230,0,.6));}
+
+/* Attr bar */
+.attr-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;}
+.attr-name{width:88px;color:var(--dim);font-size:9px;letter-spacing:.08em;text-transform:uppercase;}
+.attr-bar{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:1px;}
+.attr-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:1px;transition:width .4s;}
+.attr-num{width:20px;text-align:right;font-family:'Orbitron',monospace;font-size:9px;color:var(--cyan);}
+
+/* Rep bar */
+.rep-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:9px;}
+.rep-name{width:80px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;}
+.rep-bar{flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:1px;position:relative;}
+.rep-fill{position:absolute;height:100%;border-radius:1px;transition:all .4s;}
+.rep-fill.pos{background:var(--green);left:50%;}
+.rep-fill.neg{background:var(--red);right:50%;}
+.rep-num{width:28px;text-align:right;font-family:'Orbitron',monospace;font-size:9px;}
+
+/* Inventory item */
+.inv-item{display:flex;align-items:center;gap:8px;padding:5px 8px;margin-bottom:4px;
+  background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:1px;}
+.inv-item-name{flex:1;font-size:10px;color:var(--text);}
+.inv-item-type{font-size:8px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;}
+.inv-item-equip{font-size:8px;color:var(--yellow);}
+
+/* Spell badge */
+.spell-badge{display:inline-block;background:rgba(178,75,255,.1);border:1px solid rgba(178,75,255,.3);
+  border-radius:1px;padding:2px 8px;font-size:9px;color:var(--purple);margin:2px;}
+
+/* Flash effects */
+@keyframes flashWin{0%{box-shadow:inset 0 0 0 rgba(0,255,157,0)}25%{box-shadow:inset 0 0 80px rgba(0,255,157,.12)}100%{box-shadow:inset 0 0 0 rgba(0,255,157,0)}}
+@keyframes flashLose{0%{box-shadow:inset 0 0 0 rgba(255,45,120,0)}25%{box-shadow:inset 0 0 80px rgba(255,45,120,.15)}100%{box-shadow:inset 0 0 0 rgba(255,45,120,0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-8px)}30%{transform:translateX(8px)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}}
+.flash-win{animation:flashWin .8s ease forwards;}
+.flash-lose{animation:flashLose .8s ease forwards;}
+.shake{animation:shake .45s ease;}
+
+/* Particle */
+.particle{position:fixed;pointer-events:none;z-index:999;animation:partFly var(--dur,1s) ease-out forwards;}
+@keyframes partFly{0%{transform:translate(0,0) rotate(0) scale(1);opacity:1}100%{transform:translate(var(--dx,0),var(--dy,150px)) rotate(var(--rot,360deg)) scale(0);opacity:0}}
+
+/* Empty hero panel */
+#no-hero{padding:20px 14px;text-align:center;color:var(--dim);font-size:11px;line-height:1.8;}
+#no-hero .nh-icon{font-size:40px;margin-bottom:10px;opacity:.4;}
+
+.hidden{display:none!important;}
+
+/* Scrollbar for log */
+#log::-webkit-scrollbar{width:3px;}
+
+/* Selection card */
+.sel-card{
+  border:1px solid rgba(0,245,255,.15);background:rgba(0,245,255,.03);
+  border-radius:1px;padding:10px 12px;margin-bottom:6px;cursor:pointer;
+  transition:all .15s;
+}
+.sel-card:hover{border-color:var(--cyan);background:rgba(0,245,255,.08);}
+.sel-card.active{border-color:var(--pink);background:rgba(255,45,120,.08);}
+.sel-card-title{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;
+  color:var(--cyan);letter-spacing:.1em;margin-bottom:4px;}
+.sel-card-sub{font-size:10px;color:var(--dim);line-height:1.5;}
+
+/* Battle HP bars in log */
+.battle-bars{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);
+  border-radius:2px;padding:10px 14px;margin:6px 0;}
+.bb-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.bb-row:last-child{margin-bottom:0;}
+.bb-name{width:110px;font-size:10px;color:var(--text);}
+.bb-bar{flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:1px;overflow:hidden;}
+.bb-fill{height:100%;border-radius:1px;transition:width .5s ease;}
+.bb-fill.hero{background:linear-gradient(90deg,var(--green),rgba(0,255,157,.6));}
+.bb-fill.hero.low{background:linear-gradient(90deg,var(--red),rgba(255,49,49,.6));}
+.bb-fill.enemy{background:linear-gradient(90deg,var(--pink),rgba(255,45,120,.6));}
+.bb-hp{font-family:'Orbitron',monospace;font-size:9px;width:60px;text-align:right;color:var(--dim);}
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div id="vignette"></div>
+<div id="scanlines"></div>
+
+<div id="app">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div>
+      <div class="bar-title">THE HERO'S JOURNEY // 2157</div>
+      <div class="bar-sub">TACTICAL RPG ENGINE v1.0.0</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div id="save-indicator">NO SAVE</div>
+      <div class="leds">
+        <div class="led pk"></div>
+        <div class="led cy"></div>
+        <div class="led ye"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+
+    <!-- Left: hero stats -->
+    <div id="left-panel">
+      <div id="no-hero">
+        <div class="nh-icon">⚔</div>
+        <div>No hero loaded.<br>Begin your journey.</div>
+      </div>
+      <div id="hero-panel" class="hidden"></div>
+    </div>
+
+    <!-- Right: log + input -->
+    <div id="right-panel">
+      <div id="log"></div>
+      <div id="input-zone">
+        <div id="prompt-label">&gt;&gt; AWAITING INPUT</div>
+        <div id="btn-grid"></div>
+        <div id="text-row" class="hidden">
+          <input type="text" id="text-input" autocomplete="off" spellcheck="false" placeholder="type here..."/>
+          <button id="submit-btn" onclick="submitText()">ENTER</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  BACKGROUND CANVAS
+// ════════════════════════════════════════════
+(function(){
+  const canvas=document.getElementById('bg');
+  const ctx=canvas.getContext('2d');
+  let W,H;
+  function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  let g=0;
+  const CHARS='01アイウカキ$#@%XZ';
+  const drops=Array.from({length:Math.ceil(innerWidth/20)},()=>({
+    x:Math.random(),col:0,speed:.003+Math.random()*.006,
+    alpha:.08+Math.random()*.25,hue:Math.random()<.5?180:320
+  }));
+  function frame(t){
+    ctx.clearRect(0,0,W,H);
+    const bg=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.max(W,H)*.8);
+    bg.addColorStop(0,'#060212');bg.addColorStop(.5,'#04010a');bg.addColorStop(1,'#020008');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    // grid
+    g=(g+.0004)%(1/14);
+    const vpx=W*.5,vpy=H*.42;
+    ctx.save();
+    for(let r=0;r<=16;r++){const f=(r/16+g)%1,ease=Math.pow(f,2.4),y=vpy+(H-vpy)*ease;
+      ctx.strokeStyle=`rgba(0,245,255,${f*.18})`;ctx.lineWidth=f*1.2+.2;
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    for(let c=0;c<=18;c++){const xb=(c/18)*W;ctx.strokeStyle='rgba(255,45,120,0.06)';
+      ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(vpx,vpy);ctx.lineTo(xb,H);ctx.stroke();}
+    ctx.restore();
+    // rain
+    ctx.save();
+    drops.forEach(d=>{
+      d.col=(d.col+d.speed)%1.15;if(d.col>1.12){d.col=0;d.x=Math.random();}
+      const x=d.x*W,y=d.col*H;
+      ctx.font="12px 'Share Tech Mono',monospace";
+      ctx.fillStyle=`hsla(${d.hue},100%,70%,${d.alpha})`;
+      ctx.fillText(CHARS[Math.floor(Math.random()*CHARS.length)],x,y);
+    });
+    ctx.restore();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+// ════════════════════════════════════════════
+//  GAME DATA
+// ════════════════════════════════════════════
+const HERO_TYPES={
+  "1":{name:"Sorcerer",bonus:{magic_power:3,intelligence:2},desc:"Wields arcane forces. Fragile but devastating."},
+  "2":{name:"Thug",bonus:{strength:3,charisma:1},desc:"Hits first, asks nothing. Built for close combat."},
+  "3":{name:"Slayer",bonus:{magic_power:1,stealth:1,strength:2},desc:"Blade and spell in equal measure."},
+  "4":{name:"Sneak",bonus:{intelligence:1,stealth:3,charisma:1},desc:"Unseen. Unheard. Already behind you."},
+  "5":{name:"Genius",bonus:{magic_power:1,intelligence:3,charisma:1},desc:"Knowledge is the only weapon that never dulls."},
+};
+const GIFTS={
+  "1":{name:"Speech",bonus:{charisma:3},desc:"Words that move mountains."},
+  "2":{name:"Speed",bonus:{agility:3},desc:"First to strike. Last to fall."},
+  "3":{name:"Physical Strength",bonus:{strength:3},desc:"When logic fails, muscle prevails."},
+  "4":{name:"Sight",bonus:{perception:3},desc:"Nothing escapes your eye."},
+  "5":{name:"Love",bonus:{willpower:3},desc:"The only force that bends fate."},
+};
+const MAGIC_SYSTEMS={
+  "1":"Fire","2":"Water","3":"Earth","4":"Air","5":"Lightning","6":"Darkness","7":"Nano"
+};
+const HERO_HOMES={
+  "1":{name:"Forest",lore:"raised among ancient trees and hidden paths",
+       item:{name:"Carved Bow",type:"weapon",value:40,stats:{agility:1},description:"Bent from a living branch. Still grows."}},
+  "2":{name:"Desert",lore:"hardened by endless heat and scarce water",
+       item:{name:"Sand Cloak",type:"armor",value:35,stats:{stealth:1},description:"Blends with dunes. Keeps the heat out."}},
+  "3":{name:"Mountain",lore:"forged in cold stone and thin air",
+       item:{name:"Iron Pick",type:"weapon",value:38,stats:{strength:1},description:"Used for climbing first, fighting second."}},
+  "4":{name:"Sea",lore:"born on open water, navigator by instinct",
+       item:{name:"Navigator's Chart",type:"key_item",value:50,stats:{perception:1},description:"Shows coasts no map-maker ever drew."}},
+  "5":{name:"Sky",lore:"a child of the clouds, unbounded and restless",
+       item:{name:"Wind Charm",type:"relic",value:45,stats:{agility:1,magic_power:1},description:"Hums when a storm is three days out."}},
+};
+
+const ENEMY_TYPES=[
+  {name:"Street Thug",hp:[18,35],dmg:[3,7],spd:[.6,1.4],xp:[10,25],gold:[5,20],
+   col:"#c84040",abilities:["brawl"],loot:["Stim Pack",null,null],
+   flavor:"A scarred enforcer. Hits hard, thinks slow."},
+  {name:"Neon Rat",hp:[8,18],dmg:[1,4],spd:[1.8,3.2],xp:[5,15],gold:[1,8],
+   col:"#50c850",abilities:["dodge"],loot:[null,null,"Scrap Wire"],
+   flavor:"Mutated vermin. Fast and annoying."},
+  {name:"Corp Drone",hp:[25,50],dmg:[5,10],spd:[.4,.9],xp:[20,40],gold:[15,35],
+   col:"#4080c8",abilities:["shield_pulse","brawl"],loot:["EMP Chip","Stim Pack",null],
+   flavor:"Corporate security bot. Armoured and relentless."},
+  {name:"Ghost Runner",hp:[15,30],dmg:[8,15],spd:[1.5,2.8],xp:[30,55],gold:[20,50],
+   col:"#c050d0",abilities:["dodge","crit_strike"],loot:["Ghost Blade",null,null],
+   flavor:"A hired blade. You may not see the first hit."},
+  {name:"Sewer Mutant",hp:[40,80],dmg:[6,12],spd:[.3,.8],xp:[35,60],gold:[5,15],
+   col:"#80c050",abilities:["brawl","poison_bite"],loot:[null,null,null],
+   flavor:"Something the sewers made. Tough and wrong."},
+];
+
+const ABILITIES={
+  brawl:      {name:"Brawl",mult:1.0,effect:null},
+  dodge:      {name:"Dodge",mult:0.0,effect:"miss"},
+  crit_strike:{name:"Critical Strike",mult:2.0,effect:"crit"},
+  shield_pulse:{name:"Shield Pulse",mult:0.0,effect:"shield"},
+  poison_bite:{name:"Poison Bite",mult:.8,effect:"poison"},
+};
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let hero=null;
+let phase="boot";
+let battleState=null;
+let tempSelection={type:null,gift:null,magic:null,home:null,name:null};
+
+// ════════════════════════════════════════════
+//  SAVE / LOAD
+// ════════════════════════════════════════════
+const SAVE_KEY="heroes_journey_heroes";
+function loadAllHeroes(){try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{};}catch{return {};}}
+function saveAllHeroes(db){localStorage.setItem(SAVE_KEY,JSON.stringify(db));}
+function saveHero(h){
+  const db=loadAllHeroes();
+  h.last_played=new Date().toISOString().slice(0,19);
+  db[h.name]=h;saveAllHeroes(db);
+  document.getElementById('save-indicator').textContent=`SAVED: ${h.name.toUpperCase()}`;
+}
+function loadHero(name){const db=loadAllHeroes();return db[name]||null;}
+function deleteHero(name){const db=loadAllHeroes();delete db[name];saveAllHeroes(db);}
+function listHeroes(){
+  const db=loadAllHeroes();
+  return Object.values(db).sort((a,b)=>b.last_played.localeCompare(a.last_played));
+}
+function heroExists(name){return !!loadAllHeroes()[name];}
+
+// ════════════════════════════════════════════
+//  HERO BUILDER
+// ════════════════════════════════════════════
+function buildHero(name,typeKey,giftKey,magicKey,homeKey){
+  const ht=HERO_TYPES[typeKey];
+  const gf=GIFTS[giftKey];
+  const hm=HERO_HOMES[homeKey];
+  const magic=MAGIC_SYSTEMS[magicKey];
+  const attrs={strength:5,intelligence:5,stealth:5,charisma:5,agility:5,willpower:5,perception:5,magic_power:5};
+  for(const[k,v] of Object.entries(ht.bonus)) attrs[k]=(attrs[k]||5)+v;
+  for(const[k,v] of Object.entries(gf.bonus)) attrs[k]=(attrs[k]||5)+v;
+  const startItem={...hm.item,id:crypto.randomUUID(),acquired:new Date().toISOString().slice(0,19)};
+  return {
+    id:crypto.randomUUID(),name,hero_type:ht.name,gift:gf.name,magic,
+    home:hm.name,home_lore:hm.lore,
+    created:new Date().toISOString().slice(0,19),last_played:new Date().toISOString().slice(0,19),
+    level:1,xp:0,xp_to_next:100,
+    hp:100,hp_max:100,mana:60,mana_max:60,stamina:50,stamina_max:50,
+    gold:100,rare_essence:0,
+    attributes:attrs,
+    damage:8+Math.floor(attrs.strength/2),
+    magic_system:{element:magic,spells:[`${magic} Bolt`],mastery:1},
+    inventory:[startItem],
+    equipped:{weapon:null,armor:null,relic:null,accessory:null},
+    flags:{intro_complete:false,act:1,quests_complete:[],quests_active:[],choices:[],world_events:[]},
+    reputation:{kingdom:0,thieves:0,mages:0,wilds:0,underworld:0},
+    stats:{quests_complete:0,quests_failed:0,enemies_defeated:0,spells_cast:0,times_died:0,gold_earned:0},
+    status:{poisoned:false,poison_turns:0,shielded:false,stunned:false},
+    save_slots:{},
+  };
+}
+
+// ════════════════════════════════════════════
+//  XP / LEVEL
+// ════════════════════════════════════════════
+function addXP(h,amount){
+  h.xp+=amount;let leveled=false;
+  while(h.xp>=h.xp_to_next){
+    h.xp-=h.xp_to_next;h.level++;h.xp_to_next=Math.floor(h.xp_to_next*1.35);
+    h.hp_max+=12;h.hp=h.hp_max;h.mana_max+=8;h.stamina_max+=5;
+    h.magic_system.mastery=Math.min(10,h.magic_system.mastery+1);
+    h.damage+=2;leveled=true;
+    log(`★ LEVEL UP → ${h.level}! HP↑ Mana↑`,'ye');
+  }
+  return leveled;
+}
+
+// ════════════════════════════════════════════
+//  ENEMY FACTORY
+// ════════════════════════════════════════════
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function rf(a,b){return Math.random()*(b-a)+a;}
+function makeEnemy(level=1){
+  const t=ENEMY_TYPES[Math.floor(Math.random()*ENEMY_TYPES.length)];
+  const lv=Math.max(1,level);
+  const hp=Math.floor(ri(...t.hp)*(1+(lv-1)*.25));
+  const dmg=Math.floor(ri(...t.dmg)*(1+(lv-1)*.2));
+  return {
+    name:t.name,level:lv,flavor:t.flavor,col:t.col,
+    hp,hp_max:hp,damage:dmg,speed:rf(...t.spd),
+    abilities:[...t.abilities],
+    xp_reward:ri(...t.xp)+(lv-1)*10,
+    gold_reward:ri(...t.gold)+(lv-1)*5,
+    loot:t.loot[Math.floor(Math.random()*t.loot.length)],
+    status:{poisoned:false,poison_turns:0,shielded:false,stunned:false},
+  };
+}
+
+// ════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════
+const logEl=document.getElementById('log');
+const promptEl=document.getElementById('prompt-label');
+const btnGrid=document.getElementById('btn-grid');
+const textRow=document.getElementById('text-row');
+const textInput=document.getElementById('text-input');
+
+function log(text,cls='',delay=0){
+  setTimeout(()=>{
+    const el=document.createElement('span');
+    el.className='msg'+(cls?' '+cls:'');
+    el.textContent=text;
+    logEl.appendChild(el);logEl.appendChild(document.createElement('br'));
+    logEl.scrollTop=logEl.scrollHeight;
+  },delay);
+}
+function logHTML(html,delay=0){
+  setTimeout(()=>{
+    const el=document.createElement('div');
+    el.className='msg';el.innerHTML=html;
+    logEl.appendChild(el);
+    logEl.scrollTop=logEl.scrollHeight;
+  },delay);
+}
+function logBlank(delay=0){log('','',delay);}
+function logDiv(delay=0){log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','div',delay);}
+
+function setPrompt(txt){promptEl.textContent=`>> ${txt}`;}
+
+function clearBtns(){btnGrid.innerHTML='';textRow.classList.add('hidden');textInput.value='';}
+
+function addBtn(label,cls,fn,disabled=false){
+  const b=document.createElement('button');
+  b.className=`gb ${cls}`;b.textContent=label;b.disabled=disabled;
+  b.onclick=fn;btnRow.appendChild?btnRow.appendChild(b):btnGrid.appendChild(b);
+  btnGrid.appendChild(b);return b;
+}
+
+function showTextInput(placeholder=''){
+  textRow.classList.remove('hidden');
+  textInput.placeholder=placeholder;
+  setTimeout(()=>textInput.focus(),60);
+}
+
+function submitText(){
+  const v=textInput.value.trim();
+  if(v) handleTextInput(v);
+  textInput.value='';
+}
+textInput.addEventListener('keydown',e=>{if(e.key==='Enter')submitText();});
+
+function spawnParticles(count=12){
+  const em=['💰','✨','⭐','💫','🌟'];
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');p.className='particle';
+    p.textContent=em[Math.floor(Math.random()*em.length)];
+    p.style.fontSize=(12+Math.random()*10)+'px';
+    const angle=Math.random()*Math.PI*2,dist=60+Math.random()*120;
+    p.style.setProperty('--dx',Math.cos(angle)*dist+'px');
+    p.style.setProperty('--dy',(Math.sin(angle)*dist-40)+'px');
+    p.style.setProperty('--rot',(Math.random()*720-360)+'deg');
+    p.style.setProperty('--dur',(.7+Math.random()*.7)+'s');
+    p.style.left=(30+Math.random()*(innerWidth-60))+'px';
+    p.style.top=(innerHeight*.4+Math.random()*100)+'px';
+    p.style.animationDelay=(Math.random()*.15)+'s';
+    document.body.appendChild(p);
+    p.addEventListener('animationend',()=>p.remove());
+  }
+}
+
+function flashPanel(cls){
+  const rp=document.getElementById('right-panel');
+  rp.classList.remove('flash-win','flash-lose');
+  void rp.offsetWidth;rp.classList.add(cls);
+  setTimeout(()=>rp.classList.remove(cls),900);
+}
+
+// ════════════════════════════════════════════
+//  HERO STATS PANEL
+// ════════════════════════════════════════════
+function renderHeroPanel(){
+  if(!hero){
+    document.getElementById('no-hero').classList.remove('hidden');
+    document.getElementById('hero-panel').classList.add('hidden');
+    return;
+  }
+  document.getElementById('no-hero').classList.add('hidden');
+  const panel=document.getElementById('hero-panel');
+  panel.classList.remove('hidden');
+  const h=hero;
+  const hpPct=Math.max(0,Math.min(100,h.hp/h.hp_max*100));
+  const mpPct=Math.max(0,Math.min(100,h.mana/h.mana_max*100));
+  const stPct=Math.max(0,Math.min(100,h.stamina/h.stamina_max*100));
+  const xpPct=Math.max(0,Math.min(100,h.xp/h.xp_to_next*100));
+  const hpLow=hpPct<30?' low':'';
+
+  const repRows=Object.entries(h.reputation).map(([fac,rep])=>{
+    const pos=rep>0;const pct=Math.abs(rep);
+    const col=pos?'#00ff9d':'#ff3131';
+    const dir=pos?'left:50%':'right:50%';
+    const w=pct/2+'%';
+    return `<div class="rep-row">
+      <div class="rep-name">${fac}</div>
+      <div class="rep-bar"><div class="rep-fill ${pos?'pos':'neg'}" style="width:${w};${dir};background:${col};"></div></div>
+      <div class="rep-num" style="color:${pos?'var(--green)':'var(--red)'}">${rep>0?'+':''}${rep}</div>
+    </div>`;
+  }).join('');
+
+  const attrRows=Object.entries(h.attributes).map(([attr,val])=>
+    `<div class="attr-row">
+      <div class="attr-name">${attr.replace('_',' ')}</div>
+      <div class="attr-bar"><div class="attr-fill" style="width:${val/20*100}%"></div></div>
+      <div class="attr-num">${val}</div>
+    </div>`).join('');
+
+  const invRows=h.inventory.length?h.inventory.map(item=>`
+    <div class="inv-item">
+      <div>
+        <div class="inv-item-name">${item.name}</div>
+        <div class="inv-item-type">${item.type}</div>
+      </div>
+      <div class="inv-item-equip">${Object.entries(item.stats||{}).map(([k,v])=>`${k}+${v}`).join(' ')}</div>
+    </div>`).join(''):'<div style="color:var(--dim);font-size:10px;padding:4px 0;">(empty)</div>';
+
+  const spells=h.magic_system.spells.map(s=>`<span class="spell-badge">${s}</span>`).join('');
+
+  panel.innerHTML=`
+    <div class="sp-section">
+      <div class="sp-title">${h.name.toUpperCase()}</div>
+      <div class="sp-row"><span class="sp-lbl">Class</span><span class="sp-val pk">${h.hero_type}</span></div>
+      <div class="sp-row"><span class="sp-lbl">Gift</span><span class="sp-val ye">${h.gift}</span></div>
+      <div class="sp-row"><span class="sp-lbl">Magic</span><span class="sp-val pu">${h.magic}</span></div>
+      <div class="sp-row"><span class="sp-lbl">Home</span><span class="sp-val">${h.home}</span></div>
+      <div class="sp-row"><span class="sp-lbl">Act</span><span class="sp-val">${h.flags.act}</span></div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-title">Vitals</div>
+      <div class="sp-row"><span class="sp-lbl">Level</span><span class="sp-val gn">${h.level}</span></div>
+      <div class="bar-wrap">
+        <div class="bar-lbl"><span>HP</span><span style="color:${hpLow?'var(--red)':'var(--green)'}">${h.hp}/${h.hp_max}</span></div>
+        <div class="bar-track"><div class="bar-fill hp${hpLow}" style="width:${hpPct}%"></div></div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-lbl"><span>MANA</span><span style="color:var(--purple)">${h.mana}/${h.mana_max}</span></div>
+        <div class="bar-track"><div class="bar-fill mana" style="width:${mpPct}%"></div></div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-lbl"><span>STAMINA</span><span style="color:var(--cyan)">${h.stamina}/${h.stamina_max}</span></div>
+        <div class="bar-track"><div class="bar-fill stam" style="width:${stPct}%"></div></div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-lbl"><span>XP</span><span style="color:var(--yellow)">${h.xp}/${h.xp_to_next}</span></div>
+        <div class="bar-track"><div class="bar-fill xp" style="width:${xpPct}%"></div></div>
+      </div>
+      <div class="sp-row" style="margin-top:6px;"><span class="sp-lbl">Gold</span><span class="sp-val ye">$${h.gold}</span></div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-title">Attributes</div>
+      ${attrRows}
+    </div>
+    <div class="sp-section">
+      <div class="sp-title">Magic — ${h.magic_system.element}</div>
+      <div style="font-size:9px;color:var(--dim);margin-bottom:6px;">Mastery ${h.magic_system.mastery}/10</div>
+      <div>${spells}</div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-title">Inventory</div>
+      ${invRows}
+    </div>
+    <div class="sp-section">
+      <div class="sp-title">Reputation</div>
+      ${repRows}
+    </div>
+    <div class="sp-section">
+      <div class="sp-title">Stats</div>
+      <div class="sp-row"><span class="sp-lbl">Kills</span><span class="sp-val">${h.stats.enemies_defeated}</span></div>
+      <div class="sp-row"><span class="sp-lbl">Quests</span><span class="sp-val gn">${h.stats.quests_complete}</span></div>
+      <div class="sp-row"><span class="sp-lbl">Deaths</span><span class="sp-val rd">${h.stats.times_died}</span></div>
+      <div class="sp-row"><span class="sp-lbl">Gold earned</span><span class="sp-val ye">$${h.stats.gold_earned}</span></div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════
+//  PHASE CONTROLLER
+// ════════════════════════════════════════════
+let textInputHandler=null;
+function handleTextInput(val){if(textInputHandler)textInputHandler(val);}
+
+function gotoPhase(p){phase=p;clearBtns();}
+
+// ════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════
+function boot(){
+  gotoPhase('boot');
+  log('╔══════════════════════════════════════════╗','c');
+  log('║       WELCOME TO THE HERO\'S JOURNEY      ║','c');
+  log('╚══════════════════════════════════════════╝','c');
+  logBlank();
+  log('> Scanning for existing heroes...','d');
+  setTimeout(()=>{
+    const heroes=listHeroes();
+    if(heroes.length){
+      log(`> ${heroes.length} hero(es) found in archive.`,'g');
+      logBlank();
+      heroes.forEach((h,i)=>{
+        log(`  [${i+1}] ${h.name.padEnd(16,' ')} ${h.hero_type.padEnd(10,' ')} Lv${h.level}  Act ${h.flags.act}`);
+      });
+      logBlank();
+      setPrompt('Load existing hero or create new?');
+      heroes.forEach((h,i)=>{
+        addBtn(`LOAD: ${h.name.toUpperCase()}`,'cy',()=>{
+          hero=loadHero(h.name);
+          logBlank();log(`> Profile loaded: ${hero.name.toUpperCase()}`,'g');
+          renderHeroPanel();
+          gotoMenu();
+        });
+      });
+      addBtn('NEW HERO','pk',()=>{gotoCreation();});
+      addBtn('DELETE HERO','rd',()=>{gotoDelete();});
+    } else {
+      log('> No heroes found. Begin your journey.','d');
+      logBlank();
+      gotoCreation();
+    }
+  },400);
+}
+
+// ════════════════════════════════════════════
+//  DELETE HERO
+// ════════════════════════════════════════════
+function gotoDelete(){
+  clearBtns();
+  log('');log('Enter the name of the hero to delete:','pk');
+  setPrompt('Hero name to delete:');
+  showTextInput('hero name');
+  textInputHandler=(val)=>{
+    if(heroExists(val)){
+      deleteHero(val);
+      log(`> Hero '${val}' deleted.`,'r');
+    } else {
+      log(`> Hero '${val}' not found.`,'r');
+    }
+    logBlank();
+    setTimeout(boot,600);
+  };
+}
+
+// ════════════════════════════════════════════
+//  HERO CREATION — multi-step wizard
+// ════════════════════════════════════════════
+function gotoCreation(){
+  gotoPhase('creation');
+  tempSelection={type:null,gift:null,magic:null,home:null,name:null};
+  logBlank();
+  log('HERO CREATION','hdr');
+  logDiv();
+  log('Enter your hero\'s name:');
+  setPrompt('Hero name:');
+  showTextInput('Enter a name...');
+  textInputHandler=(val)=>{
+    if(!val||val.length<2){log('Name must be at least 2 characters.','r');return;}
+    tempSelection.name=val.charAt(0).toUpperCase()+val.slice(1);
+    log(`> Name: ${tempSelection.name}`,'c');
+    clearBtns();
+    pickType();
+  };
+}
+
+function pickType(){
+  logBlank();log('Select your hero type:','hdr');
+  setPrompt('Choose class:');
+  Object.entries(HERO_TYPES).forEach(([k,t])=>{
+    addBtn(t.name,'cy',()=>{
+      tempSelection.type=k;
+      log(`> Class: ${t.name}`,'c');
+      log(`  "${t.desc}"`,'d');
+      clearBtns();pickGift();
+    });
+  });
+}
+
+function pickGift(){
+  logBlank();log('Select your gift:','hdr');
+  setPrompt('Choose gift:');
+  Object.entries(GIFTS).forEach(([k,g])=>{
+    addBtn(g.name,'pu',()=>{
+      tempSelection.gift=k;
+      log(`> Gift: ${g.name}`,'c');
+      log(`  "${g.desc}"`,'d');
+      clearBtns();pickMagic();
+    });
+  });
+}
+
+function pickMagic(){
+  logBlank();log('Select your magic system:','hdr');
+  setPrompt('Choose element:');
+  Object.entries(MAGIC_SYSTEMS).forEach(([k,m])=>{
+    addBtn(m,'ye',()=>{
+      tempSelection.magic=k;
+      log(`> Magic: ${m}`,'c');
+      clearBtns();pickHome();
+    });
+  });
+}
+
+function pickHome(){
+  logBlank();log('Select your home:','hdr');
+  setPrompt('Choose origin:');
+  Object.entries(HERO_HOMES).forEach(([k,h])=>{
+    addBtn(h.name,'gn',()=>{
+      tempSelection.home=k;
+      log(`> Home: ${h.name}`,'c');
+      log(`  "${h.lore}"`,'d');
+      clearBtns();confirmCreation();
+    });
+  });
+}
+
+function confirmCreation(){
+  logBlank();logDiv();log('CONFIRM YOUR HERO:','hdr');
+  const t=HERO_TYPES[tempSelection.type];
+  const g=GIFTS[tempSelection.gift];
+  const m=MAGIC_SYSTEMS[tempSelection.magic];
+  const hm=HERO_HOMES[tempSelection.home];
+  log(`  Name:   ${tempSelection.name}`,'w');
+  log(`  Class:  ${t.name}`,'c');
+  log(`  Gift:   ${g.name}`,'pu');
+  log(`  Magic:  ${m}`,'ye');
+  log(`  Home:   ${hm.name}`,'g');
+  logDiv();
+  logBlank();
+  setPrompt('Confirm hero creation?');
+  addBtn('CONFIRM — BEGIN JOURNEY','pk',()=>{
+    if(heroExists(tempSelection.name)){
+      clearBtns();
+      log(`> A hero named '${tempSelection.name}' already exists.`,'y');
+      addBtn('OVERWRITE','rd',()=>{finalizeHero();});
+      addBtn('CANCEL','cy',()=>{boot();});
+    } else {
+      finalizeHero();
+    }
+  });
+  addBtn('START OVER','rd',()=>{gotoCreation();});
+}
+
+function finalizeHero(){
+  hero=buildHero(tempSelection.name,tempSelection.type,tempSelection.gift,tempSelection.magic,tempSelection.home);
+  saveHero(hero);
+  renderHeroPanel();
+  clearBtns();
+  logBlank();
+  log(`Your hero is ${hero.name}, a ${hero.hero_type}`,'big');
+  log(`with a gift for ${hero.gift} and mastery of ${hero.magic}`,'pk');
+  log(`${hero.home_lore}.`,'d');
+  logBlank();
+  log('You are ready to begin the epic journey!','g');
+  logBlank();
+  // Show starting item
+  if(hero.inventory.length){
+    const item=hero.inventory[0];
+    log(`Starting item received: ${item.name}`,'ye');
+    log(`  "${item.description}"`,'d');
+  }
+  spawnParticles(16);
+  setTimeout(()=>gotoMenu(),2000);
+}
+
+// ════════════════════════════════════════════
+//  MAIN MENU
+// ════════════════════════════════════════════
+function gotoMenu(){
+  gotoPhase('menu');
+  logBlank();logDiv();
+  log(`// ACT ${hero.flags.act} — MAIN MENU`,'hdr');
+  logDiv();
+  setPrompt('What will you do?');
+  addBtn('⚔  ENCOUNTER','pk',()=>{gotoEncounter();});
+  addBtn('🎒  INVENTORY','cy',()=>{gotoInventory();});
+  addBtn('📜  QUESTS','ye',()=>{gotoQuests();});
+  addBtn('💾  QUICK SAVE','gn',()=>{
+    saveHero(hero);
+    log('> Game saved.','g');
+  });
+  addBtn('📊  STATUS','pu',()=>{gotoStatus();});
+  addBtn('🔄  NEW GAME','rd',()=>{
+    hero=null;renderHeroPanel();
+    document.getElementById('save-indicator').textContent='NO SAVE';
+    logEl.innerHTML='';boot();
+  });
+}
+
+// ════════════════════════════════════════════
+//  STATUS SCREEN
+// ════════════════════════════════════════════
+function gotoStatus(){
+  clearBtns();logBlank();
+  log('══════════════════════════════════════════════════','sep');
+  log(`  ${hero.name.toUpperCase()}  ·  ${hero.hero_type.toUpperCase()}`,'hdr');
+  log(`  "${hero.home_lore}"`,'d');
+  log('──────────────────────────────────────────────────','sep');
+  log(`  Level ${hero.level}  ·  XP ${hero.xp}/${hero.xp_to_next}  ·  Act ${hero.flags.act}`);
+  log(`  HP ${hero.hp}/${hero.hp_max}  Mana ${hero.mana}/${hero.mana_max}  Stamina ${hero.stamina}/${hero.stamina_max}`);
+  log(`  Gold: $${hero.gold}   Rare Essence: ${hero.rare_essence}`);
+  log('──────────────────────────────────────────────────','sep');
+  log('  ATTRIBUTES','c');
+  Object.entries(hero.attributes).forEach(([k,v])=>{
+    const bar='█'.repeat(v)+'░'.repeat(Math.max(0,20-v));
+    log(`    ${k.padEnd(18,' ')} ${bar}  ${v}`,'d');
+  });
+  log('──────────────────────────────────────────────────','sep');
+  log(`  MAGIC — ${hero.magic_system.element.toUpperCase()}  (Mastery ${hero.magic_system.mastery}/10)`,'pu');
+  log(`  Spells: ${hero.magic_system.spells.join(', ')}`,'d');
+  log('══════════════════════════════════════════════════','sep');
+  addBtn('BACK','cy',()=>{gotoMenu();});
+}
+
+// ════════════════════════════════════════════
+//  INVENTORY
+// ════════════════════════════════════════════
+function gotoInventory(){
+  clearBtns();logBlank();
+  log('INVENTORY','hdr');logDiv();
+  if(!hero.inventory.length){
+    log('  (empty)','d');
+  } else {
+    hero.inventory.forEach((item,i)=>{
+      const stats=Object.entries(item.stats||{}).map(([k,v])=>`${k}+${v}`).join(' ');
+      log(`  [${i+1}] ${item.name.padEnd(24,' ')} [${item.type}]  $${item.value}  ${stats}`);
+    });
+  }
+  logDiv();
+  log('EQUIPPED','hdr');
+  Object.entries(hero.equipped).forEach(([slot,item])=>{
+    log(`  ${slot.padEnd(12,' ')} ${item?item.name:'—'}`,'d');
+  });
+  logBlank();
+  addBtn('EQUIP ITEM','ye',()=>{
+    if(!hero.inventory.length){log('Nothing to equip.','r');return;}
+    log('Choose item to equip:');
+    clearBtns();
+    hero.inventory.forEach((item,i)=>{
+      if(['weapon','armor','relic','accessory'].includes(item.type)){
+        addBtn(item.name,'cy',()=>{
+          hero.equipped[item.type]=item;
+          log(`> Equipped: ${item.name}`,'g');
+          renderHeroPanel();saveHero(hero);gotoInventory();
+        });
+      }
+    });
+    addBtn('CANCEL','rd',()=>{gotoInventory();});
+  });
+  addBtn('USE ITEM','gn',()=>{
+    const consumables=hero.inventory.filter(i=>i.type==='consumable');
+    if(!consumables.length){log('No consumables.','r');return;}
+    clearBtns();
+    consumables.forEach(item=>{
+      addBtn(item.name,'gn',()=>{
+        for(const[stat,val] of Object.entries(item.stats||{})){
+          if(stat==='hp'){const h=Math.min(val,hero.hp_max-hero.hp);hero.hp+=h;log(`> Restored ${h} HP.`,'g');}
+        }
+        hero.inventory.splice(hero.inventory.indexOf(item),1);
+        renderHeroPanel();saveHero(hero);gotoInventory();
+      });
+    });
+    addBtn('CANCEL','rd',()=>{gotoInventory();});
+  });
+  addBtn('BACK','cy',()=>{gotoMenu();});
+}
+
+// ════════════════════════════════════════════
+//  QUESTS
+// ════════════════════════════════════════════
+const QUEST_LIST=[
+  {id:"ACT1_FIRST_BLOOD",name:"First Blood",desc:"Defeat your first enemy.",xp:50,gold:30,
+   check:h=>h.stats.enemies_defeated>=1},
+  {id:"ACT1_SURVIVOR",name:"Survivor",desc:"Survive 3 battles.",xp:80,gold:60,
+   check:h=>h.stats.enemies_defeated>=3},
+  {id:"ACT1_WEALTHY",name:"Road to Riches",desc:"Accumulate $500 gold.",xp:40,gold:0,
+   check:h=>h.gold>=500},
+  {id:"ACT1_LEVEL5",name:"Ascending",desc:"Reach Level 5.",xp:120,gold:100,
+   check:h=>h.level>=5},
+];
+
+function gotoQuests(){
+  clearBtns();logBlank();
+  log('QUEST LOG','hdr');logDiv();
+  QUEST_LIST.forEach(q=>{
+    const done=hero.flags.quests_complete.includes(q.id);
+    const ready=!done&&q.check(hero);
+    const status=done?'✓ COMPLETE':ready?'★ READY TO CLAIM':'○ IN PROGRESS';
+    const col=done?'g':ready?'ye':'d';
+    log(`  ${status.padEnd(18,' ')} ${q.name}`+(!done?` — ${q.desc}`:''),col);
+  });
+  logBlank();
+  const claimable=QUEST_LIST.filter(q=>!hero.flags.quests_complete.includes(q.id)&&q.check(hero));
+  if(claimable.length){
+    claimable.forEach(q=>{
+      addBtn(`CLAIM: ${q.name}`,'gn',()=>{
+        hero.flags.quests_complete.push(q.id);
+        hero.stats.quests_complete++;
+        if(q.gold){hero.gold+=q.gold;hero.stats.gold_earned+=q.gold;log(`+$${q.gold} gold`,'ye');}
+        if(q.xp){addXP(hero,q.xp);}
+        log(`Quest complete: ${q.name}`,'g');
+        renderHeroPanel();saveHero(hero);gotoQuests();
+      });
+    });
+  }
+  addBtn('BACK','cy',()=>{gotoMenu();});
+}
+
+// ════════════════════════════════════════════
+//  ENCOUNTER / BATTLE
+// ════════════════════════════════════════════
+function gotoEncounter(){
+  clearBtns();logBlank();logDiv();
+  const enemy=makeEnemy(hero.level);
+  log(`⚡ ENCOUNTER: ${enemy.name.toUpperCase()}`,'hdr');
+  log(`  ${enemy.flavor}`,'d');
+  log(`  Level ${enemy.level}  HP ${enemy.hp}  DMG ${enemy.damage}  Abilities: ${enemy.abilities.join(', ')}`,'d');
+  logDiv();
+
+  battleState={
+    enemy,
+    turn:0,
+    playerDodging:false,
+    fled:false,
+    over:false,
+  };
+
+  startBattleTurn();
+}
+
+function renderBattleBars(){
+  const e=battleState.enemy;
+  const hpPct=Math.max(0,Math.min(100,hero.hp/hero.hp_max*100));
+  const ePct=Math.max(0,Math.min(100,e.hp/e.hp_max*100));
+  const hpLow=hpPct<30?' low':'';
+  logHTML(`<div class="battle-bars">
+    <div class="bb-row">
+      <div class="bb-name">${hero.name}</div>
+      <div class="bb-bar"><div class="bb-fill hero${hpLow}" style="width:${hpPct}%"></div></div>
+      <div class="bb-hp">${hero.hp}/${hero.hp_max}</div>
+    </div>
+    <div class="bb-row">
+      <div class="bb-name">${e.name}</div>
+      <div class="bb-bar"><div class="bb-fill enemy" style="width:${ePct}%"></div></div>
+      <div class="bb-hp">${e.hp}/${e.hp_max}</div>
+    </div>
+  </div>`);
+}
+
+function startBattleTurn(){
+  const e=battleState.enemy;
+  battleState.turn++;
+  clearBtns();
+  logBlank();
+  log(`── Turn ${battleState.turn} ──────────────────────────────`,'sep');
+  renderBattleBars();
+
+  // Poison ticks
+  if(hero.status.poisoned&&hero.status.poison_turns>0){
+    const pdmg=ri(2,5);hero.hp=Math.max(0,hero.hp-pdmg);
+    hero.status.poison_turns--;
+    if(hero.status.poison_turns<=0)hero.status.poisoned=false;
+    log(`☠ Poison deals ${pdmg} damage to you!`,'r');
+    if(hero.hp<=0){endBattle('lost');return;}
+  }
+  if(e.status.poisoned&&e.status.poison_turns>0){
+    const pdmg=ri(2,5);e.hp=Math.max(0,e.hp-pdmg);
+    e.status.poison_turns--;
+    if(e.status.poison_turns<=0)e.status.poisoned=false;
+    log(`☠ Poison deals ${pdmg} damage to ${e.name}!`,'g');
+    if(e.hp<=0){endBattle('won');return;}
+  }
+
+  // Stamina regen
+  hero.stamina=Math.min(hero.stamina_max,hero.stamina+6);
+
+  logBlank();
+  log('Your action:','c');
+  setPrompt('Choose action:');
+
+  addBtn('⚔ ATTACK','pk',()=>doPlayerAction('attack'));
+  addBtn('💥 HEAVY STRIKE','rd',()=>doPlayerAction('heavy'));
+  addBtn('🔮 CAST SPELL','pu',()=>doPlayerAction('spell'));
+  addBtn('💨 DODGE','cy',()=>doPlayerAction('dodge'));
+  const hasConsumable=hero.inventory.some(i=>i.type==='consumable');
+  addBtn('💊 USE ITEM','gn',()=>doPlayerAction('use_item'),!hasConsumable);
+  addBtn('🏃 FLEE','ye',()=>doPlayerAction('flee'));
+  renderHeroPanel();
+}
+
+function doPlayerAction(action){
+  clearBtns();
+  const e=battleState.enemy;
+  battleState.playerDodging=false;
+
+  // Stamina cost
+  const costs={attack:5,heavy:14,spell:12,dodge:8,use_item:0,flee:10};
+  const cost=costs[action]||0;
+  if(hero.stamina<cost&&action!=='flee'&&action!=='use_item'){
+    log('Not enough stamina! Defaulting to attack.','y');
+    action='attack';
+  }
+  hero.stamina=Math.max(0,hero.stamina-cost);
+
+  if(action==='flee'){
+    if(Math.random()<0.6){log('🏃 You escaped!','ye');battleState.fled=true;endBattle('fled');return;}
+    else log('❌ Escape failed!','r');
+  } else if(action==='dodge'){
+    log('💨 You prepare to dodge!','cy');
+    battleState.playerDodging=true;
+  } else if(action==='use_item'){
+    const consumables=hero.inventory.filter(i=>i.type==='consumable');
+    if(!consumables.length){log('No consumables!','r');}
+    else{
+      const item=consumables[0];
+      for(const[stat,val] of Object.entries(item.stats||{})){
+        if(stat==='hp'){const h=Math.min(val,hero.hp_max-hero.hp);hero.hp+=h;log(`💊 Used ${item.name} — +${h} HP`,'g');}
+      }
+      hero.inventory.splice(hero.inventory.indexOf(item),1);
+      log(`> ${item.name} used.`,'d');
+    }
+  } else if(action==='spell'){
+    const spellPower=Math.floor(hero.attributes.magic_power*1.5);
+    const dmg=Math.max(1,Math.floor(spellPower*(0.8+Math.random()*0.6)));
+    // Shield check
+    let actualDmg=dmg;
+    if(e.status.shielded){actualDmg=Math.floor(dmg/2);e.status.shielded=false;log('🛡 Shield absorbed — damage halved.','y');}
+    e.hp=Math.max(0,e.hp-actualDmg);
+    hero.mana=Math.max(0,hero.mana-12);
+    hero.stats.spells_cast++;
+    log(`🔮 ${hero.magic_system.spells[0]} — deals ${actualDmg} to ${e.name}!`,'pu');
+    flashPanel('flash-win');
+  } else {
+    // attack or heavy
+    const mults={attack:1.0,heavy:1.8};
+    const mult=mults[action]||1;
+    const raw=Math.max(1,Math.floor(hero.damage*mult*(0.8+Math.random()*0.5)));
+    let actualDmg=raw;
+    if(e.status.shielded){actualDmg=Math.floor(raw/2);e.status.shielded=false;log('🛡 Shield halved the hit.','y');}
+    e.hp=Math.max(0,e.hp-actualDmg);
+    const label=action==='heavy'?'💥 HEAVY STRIKE':'⚔ Attack';
+    log(`${label} — ${actualDmg} damage to ${e.name}! (HP: ${e.hp}/${e.hp_max})`,'g');
+    flashPanel('flash-win');
+  }
+
+  if(e.hp<=0){endBattle('won');return;}
+
+  // Enemy turn
+  setTimeout(()=>doEnemyTurn(),400);
+}
+
+function doEnemyTurn(){
+  const e=battleState.enemy;
+  if(e.status.stunned){e.status.stunned=false;log(`💤 ${e.name} is stunned — skips turn!`,'y');
+    setTimeout(()=>startBattleTurn(),400);return;}
+
+  const abilKey=e.abilities[Math.floor(Math.random()*e.abilities.length)];
+  const abil=ABILITIES[abilKey];
+  log(`\n  ⚔ ${e.name} uses ${abil.name}!`,'pk');
+
+  if(abilKey==='shield_pulse'){e.status.shielded=true;log(`🛡 ${e.name} activates shield!`,'y');
+    setTimeout(()=>startBattleTurn(),400);return;}
+
+  const raw=Math.floor(e.damage*abil.mult*(0.8+Math.random()*0.5));
+
+  if(abilKey==='dodge'){log(`💨 ${e.name} dodges — will evade your next attack.`,'d');}
+  else if(raw>0){
+    // Player dodge attempt
+    if(battleState.playerDodging){
+      if(Math.random()<0.70){log('💨 You successfully dodge the attack!','cy');
+        setTimeout(()=>startBattleTurn(),400);return;}
+      else log('❌ Dodge failed!','r');
+    }
+    hero.hp=Math.max(0,hero.hp-raw);
+    const crit=abilKey==='crit_strike'?'💥 CRIT! ':'';
+    log(`${crit}${e.name} deals ${raw} damage to you.`,'r');
+    flashPanel('flash-lose');
+    if(abilKey==='poison_bite'){
+      hero.status.poisoned=true;hero.status.poison_turns=3;
+      log('☠ You are POISONED for 3 turns!','r');
+    }
+  }
+
+  if(hero.hp<=0){endBattle('lost');return;}
+  renderHeroPanel();
+  setTimeout(()=>startBattleTurn(),500);
+}
+
+function endBattle(result){
+  battleState.over=true;clearBtns();logBlank();
+  if(result==='won'){
+    const e=battleState.enemy;
+    log('══════════════════════════════════════════','sep');
+    log(`🏆 VICTORY! ${e.name} defeated!`,'g');
+    log('──────────────────────────────────────────','sep');
+    hero.stats.enemies_defeated++;
+    const xp=e.xp_reward;const gold=e.gold_reward;
+    addXP(hero,xp);
+    hero.gold+=gold;hero.stats.gold_earned+=gold;
+    log(`+${xp} XP   +$${gold} gold`,'ye');
+    if(e.loot){
+      const lootItem={
+        id:crypto.randomUUID(),name:e.loot,
+        type:e.loot==='Stim Pack'?'consumable':'misc',
+        value:ri(10,50),
+        stats:e.loot==='Stim Pack'?{hp:40}:{},
+        description:`Dropped by ${e.name}.`,
+        acquired:new Date().toISOString().slice(0,19),
+      };
+      hero.inventory.push(lootItem);
+      log(`📦 Loot: ${e.loot}`,'ye');
+    }
+    log('══════════════════════════════════════════','sep');
+    spawnParticles(14);
+    flashPanel('flash-win');
+    renderHeroPanel();saveHero(hero);
+    // Quest check
+    const newQuests=QUEST_LIST.filter(q=>!hero.flags.quests_complete.includes(q.id)&&q.check(hero));
+    if(newQuests.length){logBlank();log(`★ Quest ready to claim: ${newQuests.map(q=>q.name).join(', ')}`,'ye');}
+    logBlank();
+    addBtn('FIGHT AGAIN','pk',()=>{gotoEncounter();});
+    addBtn('MAIN MENU','cy',()=>{gotoMenu();});
+
+  } else if(result==='lost'){
+    log('══════════════════════════════════════════','sep');
+    log('💀 YOU HAVE FALLEN.','r');
+    log(`${battleState.enemy.name} stands over your body.`,'d');
+    hero.stats.times_died++;
+    hero.hp=Math.floor(hero.hp_max*.3);// Respawn at 30%
+    log('> Respawning at 30% HP...','d');
+    renderHeroPanel();saveHero(hero);
+    addBtn('TRY AGAIN','pk',()=>{gotoEncounter();});
+    addBtn('MAIN MENU','cy',()=>{gotoMenu();});
+
+  } else {// fled
+    log('> You escaped into the shadows.','ye');
+    renderHeroPanel();saveHero(hero);
+    addBtn('MAIN MENU','cy',()=>{gotoMenu();});
+  }
+}
+
+// ════════════════════════════════════════════
+//  START
+// ════════════════════════════════════════════
+boot();
+</script>
+</body>
+</html>
