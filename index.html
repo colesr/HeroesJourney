@@ -218,6 +218,44 @@ button.gb:disabled{opacity:.25;cursor:default;}
 .particle{position:fixed;pointer-events:none;z-index:999;animation:pf var(--dur,1s) ease-out forwards;}
 @keyframes pf{0%{transform:translate(0,0) rotate(0) scale(1);opacity:1}100%{transform:translate(var(--dx,0),var(--dy,150px)) rotate(var(--rot,360deg)) scale(0);opacity:0}}
 .footer-hint{text-align:center;font-size:9px;letter-spacing:.15em;color:var(--dim);padding:4px 18px 12px;text-transform:uppercase;opacity:.35;background:var(--panel);border-top:1px solid rgba(255,255,255,.02);}
+
+/* ── LEADERBOARD MODAL ── */
+#lb-modal{position:fixed;inset:0;z-index:200;background:rgba(4,1,10,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+#lb-modal.hidden{display:none!important;}
+#lb-box{background:var(--panel);border:1px solid var(--bp);border-radius:2px;width:90%;max-width:580px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(255,45,120,0.15),0 0 0 1px rgba(0,245,255,0.06);}
+#lb-box::before{content:'';display:block;height:1px;background:linear-gradient(90deg,transparent,var(--pink) 30%,var(--cyan) 70%,transparent);opacity:0.5;}
+#lb-head{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.05);}
+#lb-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--pink);letter-spacing:0.18em;text-shadow:0 0 12px rgba(255,45,120,0.7);}
+#lb-close{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:var(--dim);background:transparent;border:1px solid rgba(255,255,255,.1);padding:5px 12px;cursor:pointer;letter-spacing:0.1em;}
+#lb-close:hover{color:var(--pink);border-color:var(--bp);}
+#lb-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.05);}
+.lb-tab{flex:1;padding:9px;text-align:center;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:0.12em;color:var(--dim);cursor:pointer;border:none;background:transparent;transition:all .15s;}
+.lb-tab:hover{color:var(--cyan);}
+.lb-tab.active{color:var(--cyan);border-bottom:2px solid var(--cyan);text-shadow:0 0 8px rgba(0,245,255,0.5);}
+#lb-body{overflow-y:auto;flex:1;padding:8px 0;}
+#lb-body::-webkit-scrollbar{width:3px;}
+#lb-body::-webkit-scrollbar-thumb{background:var(--bp);border-radius:2px;}
+#lb-loading{padding:30px;text-align:center;color:var(--dim);font-size:11px;letter-spacing:0.12em;animation:lbPulse 1.2s ease-in-out infinite;}
+@keyframes lbPulse{0%,100%{opacity:.5}50%{opacity:1}}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 20px;border-bottom:1px solid rgba(255,255,255,.03);transition:background .15s;}
+.lb-row:hover{background:rgba(255,255,255,.02);}
+.lb-row.me{background:rgba(0,245,255,.04);border-left:2px solid var(--cyan);}
+.lb-rank{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;width:32px;text-align:center;}
+.lb-rank.gold{color:var(--yellow);text-shadow:0 0 10px rgba(255,230,0,0.6);}
+.lb-rank.silver{color:#c0c0c0;}
+.lb-rank.bronze{color:#cd7f32;}
+.lb-rank.other{color:var(--dim);}
+.lb-info{flex:1;}
+.lb-name{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:0.08em;}
+.lb-sub{font-size:9px;color:var(--dim);margin-top:2px;letter-spacing:0.06em;}
+.lb-score{text-align:right;}
+.lb-score-val{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--green);text-shadow:0 0 8px rgba(0,255,157,0.4);}
+.lb-score-lbl{font-size:8px;color:var(--dim);letter-spacing:0.1em;margin-top:1px;}
+#lb-footer{padding:12px 20px;border-top:1px solid rgba(255,255,255,.05);display:flex;gap:8px;align-items:center;justify-content:space-between;}
+#lb-updated{font-size:9px;color:var(--dim);letter-spacing:0.1em;}
+#lb-refresh{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:var(--cyan);background:rgba(0,245,255,.07);border:1px solid rgba(0,245,255,.3);padding:6px 14px;cursor:pointer;letter-spacing:0.1em;}
+#lb-refresh:hover{background:rgba(0,245,255,.14);}
+.lb-crown{font-size:14px;margin-right:2px;}
 </style>
 </head>
 <body>
@@ -282,6 +320,29 @@ button.gb:disabled{opacity:.25;cursor:default;}
         </div>
         <div class="footer-hint">PRESS ENTER TO CONFIRM · CLICK BUTTONS TO SELECT</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     GLOBAL LEADERBOARD MODAL
+═══════════════════════════════════ -->
+<div id="lb-modal" class="hidden">
+  <div id="lb-box">
+    <div id="lb-head">
+      <div id="lb-title">🏆 GLOBAL LEADERBOARD // NEON DISTRICT</div>
+      <button id="lb-close" onclick="closeLB()">✕ CLOSE</button>
+    </div>
+    <div id="lb-tabs">
+      <button class="lb-tab active" onclick="switchTab('kills')">KILLS</button>
+      <button class="lb-tab" onclick="switchTab('level')">LEVEL</button>
+      <button class="lb-tab" onclick="switchTab('gold')">GOLD</button>
+      <button class="lb-tab" onclick="switchTab('quests')">QUESTS</button>
+    </div>
+    <div id="lb-body"><div id="lb-loading">// CONNECTING TO NETWORK...</div></div>
+    <div id="lb-footer">
+      <span id="lb-updated"></span>
+      <button id="lb-refresh" onclick="loadLB()">↻ REFRESH</button>
     </div>
   </div>
 </div>
@@ -1269,8 +1330,9 @@ function initGame(){
     addBtn('⚔  ENCOUNTER','pk',()=>gotoEncounter());
     addBtn('🎒  INVENTORY','cy',()=>gotoInventory());
     addBtn('📜  QUESTS','ye',()=>gotoQuests());
-    addBtn('💾  SAVE','gn',()=>{saveHero(hero);log('> Game saved.','g');});
+    addBtn('💾  SAVE','gn',()=>{saveHero(hero);pushToLeaderboard();log('> Game saved & synced to leaderboard.','g');});
     addBtn('📊  STATUS','pu',()=>gotoStatus());
+    addBtn('🏆  LEADERBOARD','ye',()=>openLB());
     addBtn('🔄  NEW GAME','rd',()=>{hero=null;renderHeroPanel();document.getElementById('save-ind').textContent='NO SAVE';logEl.innerHTML='';boot();});
   }
 
@@ -1450,6 +1512,7 @@ function initGame(){
         hero.inventory.push(li);log(`📦 Loot: ${e.loot}`,'ye');
       }
       spawnParticles();flashPanel('flash-win');
+      pushToLeaderboard(); // sync to global board
       const newQ=QUEST_LIST.filter(q=>!hero.flags.quests_complete.includes(q.id)&&q.check(hero));
       if(newQ.length){logBlank();log(`★ Quest ready: ${newQ.map(q=>q.name).join(', ')}`,'ye');}
       addBtn('FIGHT AGAIN','pk',()=>gotoEncounter());
@@ -1466,8 +1529,131 @@ function initGame(){
     renderHeroPanel();saveHero(hero);
   }
 
+  // ══════════════════════════════════════════════
+  //  GLOBAL LEADERBOARD  (shared persistent storage)
+  // ══════════════════════════════════════════════
+  const LB_KEY = 'hj_global_leaderboard_v1';
+  // Use module-level vars exposed via closure reference
+  window._lbTab = window._lbTab || 'kills';
+  window._lbCache = window._lbCache || null;
+
+  // Score formula per tab
+  const LB_TABS = {
+    kills:  { label:'KILLS',   get: e => e.kills,   fmt: v => v+' kills',    col:'pk' },
+    level:  { label:'LEVEL',   get: e => e.level,   fmt: v => 'Lv '+v,       col:'cy' },
+    gold:   { label:'GOLD',    get: e => e.gold,     fmt: v => '$'+v.toLocaleString(), col:'ye' },
+    quests: { label:'QUESTS',  get: e => e.quests,   fmt: v => v+' complete', col:'gn' },
+  };
+
+  // Push current hero stats to the global leaderboard
+  async function pushToLeaderboard() {
+    if (!hero) return;
+    try {
+      const entry = {
+        name:    hero.name,
+        class:   hero.hero_type,
+        magic:   hero.magic,
+        home:    hero.home,
+        level:   hero.level,
+        kills:   hero.stats.enemies_defeated,
+        gold:    hero.gold,
+        quests:  hero.stats.quests_complete,
+        deaths:  hero.stats.times_died,
+        updated: new Date().toISOString().slice(0,19),
+      };
+      let board = {};
+      try {
+        const raw = await window.storage.get(LB_KEY, true);
+        if (raw) board = JSON.parse(raw.value);
+      } catch(e) {}
+      board[hero.name] = entry;
+      await window.storage.set(LB_KEY, JSON.stringify(board), true);
+    } catch(e) {
+      console.warn('Leaderboard push failed:', e);
+    }
+  }
+
+  // Make lb helpers available on window so global wrappers can call them
+  window._lbListHeroes = ()=>listHeroes();
+  window._lbHero = ()=>hero;
+  window._lbTabs = LB_TABS;
+
+  window._lbLoad = async function() {
+    document.getElementById('lb-body').innerHTML = '<div id="lb-loading">// SYNCING WITH NETWORK...</div>';
+    try {
+      const raw = await window.storage.get(LB_KEY, true);
+      if (!raw) { window._renderLB({}); return; }
+      window._lbCache = JSON.parse(raw.value);
+      window._renderLB(window._lbCache);
+      document.getElementById('lb-updated').textContent = '// SYNCED ' + new Date().toLocaleTimeString();
+    } catch(e) {
+      document.getElementById('lb-body').innerHTML =
+        '<div id="lb-loading" style="color:var(--red)">// NETWORK UNAVAILABLE — showing local data</div>';
+      const localHeroes = listHeroes();
+      const fallback = {};
+      localHeroes.forEach(h => {
+        fallback[h.name] = {
+          name:h.name, class:h.hero_type, magic:h.magic, home:h.home,
+          level:h.level, kills:h.stats.enemies_defeated,
+          gold:h.gold, quests:h.stats.quests_complete,
+          deaths:h.stats.times_died, updated:h.last_played,
+        };
+      });
+      setTimeout(()=>window._renderLB(fallback), 600);
+    }
+  };
+
+  window._renderLB = function(board) {
+    const tab = window._lbTabs[window._lbTab];
+    const entries = Object.values(board);
+    const currentHero = window._lbHero();
+    if (!entries.length) {
+      document.getElementById('lb-body').innerHTML =
+        '<div id="lb-loading">// NO OPERATIVES ON RECORD YET.<br>Complete a battle to appear here.</div>';
+      return;
+    }
+    entries.sort((a,b) => (tab.get(b)||0) - (tab.get(a)||0));
+    const rankIcons = ['👑','🥈','🥉'];
+    const rankCls   = ['gold','silver','bronze'];
+    const html = entries.map((e,i) => {
+      const isMe = currentHero && e.name === currentHero.name;
+      const rank = i < 3 ? rankIcons[i] : `#${i+1}`;
+      const rankClass = i < 3 ? rankCls[i] : 'other';
+      const scoreVal = tab.get(e) || 0;
+      return `<div class="lb-row${isMe?' me':''}">
+        <div class="lb-rank ${rankClass}">${rank}</div>
+        <div class="lb-info">
+          <div class="lb-name">${e.name.toUpperCase()}${isMe?' <span style="color:var(--cyan);font-size:8px;">◀ YOU</span>':''}</div>
+          <div class="lb-sub">${e.class} · ${e.magic} · From ${e.home} · ${e.deaths||0} deaths</div>
+        </div>
+        <div class="lb-score">
+          <div class="lb-score-val" style="color:var(--${tab.col})">${tab.fmt(scoreVal)}</div>
+          <div class="lb-score-lbl">${tab.label}</div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('lb-body').innerHTML = html;
+  };
+
+  // backdrop close
+  document.getElementById('lb-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('lb-modal')) closeLB();
+  });
+
   boot();
 }
+
+// ── Expose leaderboard controls globally (called from HTML onclick) ──
+function openLB(){ document.getElementById('lb-modal').classList.remove('hidden'); window._lbLoad(); }
+function closeLB(){ document.getElementById('lb-modal').classList.add('hidden'); }
+function switchTab(tab){
+  window._lbTab=tab;
+  document.querySelectorAll('.lb-tab').forEach((t,i)=>{
+    t.classList.toggle('active',['kills','level','gold','quests'][i]===tab);
+  });
+  if(window._lbCache) window._renderLB(window._lbCache); else window._lbLoad();
+}
+function loadLB(){ window._lbLoad(); }
 </script>
 </body>
 </html>
